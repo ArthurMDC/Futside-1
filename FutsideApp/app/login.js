@@ -8,12 +8,51 @@ import {
   SafeAreaView,
   Image,
   Linking,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { API_URL } from '../config/api';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/login.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Redirecionando para a tela de sucesso
+        router.replace('login-success');
+      } else {
+        Alert.alert('Erro', data.error || 'Erro ao fazer login');
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Erro ao conectar com o servidor');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGooglePress = async () => {
     try {
@@ -66,6 +105,8 @@ export default function LoginScreen() {
             placeholderTextColor="#999"
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
         </View>
 
@@ -75,6 +116,8 @@ export default function LoginScreen() {
             placeholder="Senha"
             placeholderTextColor="#999"
             secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
           />
           <TouchableOpacity 
             style={styles.showPasswordButton}
@@ -91,8 +134,12 @@ export default function LoginScreen() {
           <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginButton}>
-          <Text style={styles.loginButtonText}>Entrar</Text>
+        <TouchableOpacity 
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.loginButtonText}>{loading ? 'Carregando...' : 'Entrar'}</Text>
         </TouchableOpacity>
 
         <View style={styles.socialContainer}>
@@ -213,6 +260,9 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#ddd',
   },
   loginButtonText: {
     color: '#fff',
